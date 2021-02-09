@@ -60,7 +60,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu, macos, windows]
-        python: [3.6, 3.9]
+        python: [3.6, 3.8, 3.9]
         include:
           - python: 3.6
             dist: 'pythreejs*.tar.gz'
@@ -71,7 +71,7 @@ jobs:
           - python: 3.9
             dist: 'pythreejs*.whl'
             lab: "'jupyterlab==2.*'"
-            node-version: 12
+            node-version: 14
           - os: windows
             py_cmd: python
           - os: macos
