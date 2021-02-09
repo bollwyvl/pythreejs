@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: '*'
+
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: 1
+
+defaults:
+  run:
+    shell: bash -l {0}
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Set up Node
+      uses: actions/setup-node@v2
+      with:
+        node-version: 12.x
+    - name: Install packaging dependencies
+      run:
+        pip install -U --user pip wheel setuptools
+    - name: Build sdist
+      run:
+        python setup.py sdist
+    - name: Build wheel
+      run:
+        python setup.py bdist_wheel
+    - name: Hash files
+      run:
+        cd dist
+        sha256sum * >> SHA256SUMS
+    - name: Upload distributions
+      uses: actions/upload-artifact@v2
+      with:
+        name: dist ${{ github.run_number }}
+        path: ./dist
