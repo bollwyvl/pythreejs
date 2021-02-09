@@ -28,21 +28,22 @@ jobs:
       with:
         node-version: 12.x
     - name: Install packaging dependencies
-      run:
+      run: |
+        set -eux
         pip install -U --user pip wheel setuptools
-        npm install yarn=1
+        npm install -g yarn
     - name: Pre-install node stuff
-      run:
+      run: |
+        set -eux
         cd js
         yarn --ignore-optional
     - name: Build sdist
-      run:
-        python setup.py sdist
+      run: python setup.py sdist
     - name: Build wheel
-      run:
-        python setup.py bdist_wheel
+      run: python setup.py bdist_wheel
     - name: Collect and Hash distributions
-      run:
+      run: |
+        set -eux
         cp js/lab-dist/jupyter-threejs-*.tgz dist
         cd dist
         sha256sum * | tee SHA256SUMS
