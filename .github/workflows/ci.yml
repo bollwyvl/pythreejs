@@ -30,9 +30,9 @@ jobs:
     - name: Install packaging dependencies
       run: |
         set -eux
-        pip install -U --user pip wheel setuptools
+        python -m pip install -U --user pip wheel setuptools
         npm install -g yarn
-    - name: Pre-install node stuff
+    - name: Pre-install node dependencies
       run: |
         set -eux
         cd js
@@ -41,7 +41,7 @@ jobs:
       run: python setup.py sdist
     - name: Build wheel
       run: python setup.py bdist_wheel
-    - name: Collect and Hash distributions
+    - name: Collect and hash distributions
       run: |
         set -eux
         cp js/lab-dist/jupyter-threejs-*.tgz dist
@@ -52,3 +52,57 @@ jobs:
       with:
         name: dist ${{ github.run_number }}
         path: ./dist
+
+  test:
+    needs: [build]
+    runs-on: ${{ matrix.os }}-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu, macos, windows]
+        python: ['3.6', '3.9']
+        include:
+          - python: '3.6'
+            dist: '*.tar.gz'
+          - python: '3.9'
+            dist: '*.whl'
+          - os: windows
+            py_cmd: python
+          - os: macos
+            py_cmd: python3
+          - os: ubuntu
+            py_cmd: python
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - uses: actions/download-artifact@v2
+      with:
+        name: dist ${{ github.run_number }}
+        path: ./dist
+    - name: Install installation dependencies
+      run: |
+        set -eux
+        ${{ matrix.py_cmd }} -m pip install --user -U pip wheel setuptools
+    - name: Install package
+      run: |
+        set -eux
+        cd dist
+        ${{ matrix.py_cmd }} -m pip install ${{ matrix.dist }}
+    - name: Validate environment
+      run: |
+        set -eux
+        ${{ matrix.py_cmd }} -m pip freeze
+        ${{ matrix.py_cmd }} -m pip check
+    - name: Install test dependencies
+      # explicit file installs don't support extras
+      run: |
+        set -eux
+        ${{ matrix.py_cmd }} -m pip install nbval 'numpy>=1.14' scipy scikit-image matplotlib ipywebrtc
+    - name: Run python tests
+      run: |
+        set -eux
+        rm -rf pythreejs
+        ${{ matrix.py_cmd }} -m pytest -l --nbval-lax --current-env .
