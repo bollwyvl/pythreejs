@@ -26,7 +26,7 @@ jobs:
     - name: Set up Node
       uses: actions/setup-node@v2
       with:
-        node-version: 12.x
+        node-version: 14.x
     - name: Install packaging dependencies
       run: |
         set -eux
@@ -60,12 +60,18 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu, macos, windows]
-        python: ['3.6', '3.9']
+        python: [3.6, 3.9]
         include:
-          - python: '3.6'
-            dist: '*.tar.gz'
-          - python: '3.9'
-            dist: '*.whl'
+          - python: 3.6
+            dist: 'pythreejs*.tar.gz'
+          - python: 3.8
+            dist: 'pythreejs*.whl'
+            lab: "'jupyterlab==1.*'"
+            node-version: 10
+          - python: 3.9
+            dist: 'pythreejs*.whl'
+            lab: "'jupyterlab==2.*'"
+            node-version: 12
           - os: windows
             py_cmd: python
           - os: macos
@@ -86,23 +92,51 @@ jobs:
       run: |
         set -eux
         ${{ matrix.py_cmd }} -m pip install --user -U pip wheel setuptools
-    - name: Install package
+    - name: Install package (maybe lab)
       run: |
         set -eux
         cd dist
-        ${{ matrix.py_cmd }} -m pip install ${{ matrix.dist }}
+        ${{ matrix.py_cmd }} -m pip install ${{ matrix.dist }} ${{ matrix.lab }}
     - name: Validate environment
       run: |
         set -eux
         ${{ matrix.py_cmd }} -m pip freeze
         ${{ matrix.py_cmd }} -m pip check
     - name: Install test dependencies
-      # explicit file installs don't support extras
+      # explicit file installs don't support extras, skimage brings most along
       run: |
         set -eux
-        ${{ matrix.py_cmd }} -m pip install nbval 'numpy>=1.14' scipy scikit-image matplotlib ipywebrtc
+        ${{ matrix.py_cmd }} -m pip install nbval scikit-image ipywebrtc
     - name: Run python tests
       run: |
         set -eux
         rm -rf pythreejs
         ${{ matrix.py_cmd }} -m pytest -l --nbval-lax --current-env .
+    - name: Check nbextension
+      run: |
+        set -eux
+        jupyter nbextension list
+        jupyter nbextension list 2>&1 | grep -ie "jupyter-threejs/extension.*enabled" -
+    - if: ${{ matrix.node-version }}
+      name: Set up Node
+      uses: actions/setup-node@v2
+      with:
+        node-version: ${{ matrix.node-version }}
+    - if: ${{ matrix.node-version }}
+      name: Install labextension
+      run: |
+        set -eux
+        jupyter labextension install --no-build --debug dist/*.tgz
+        jupyter labextension list
+        jupyter labextension list 2>&1 | grep -ie "jupyter-threejs" -
+    - if: ${{ matrix.node-version }}
+      name: Build lab
+      run: |
+        set -eux
+        jupyter lab build --debug
+    - if: ${{ matrix.lab }}
+      name: Check labextension
+      run: |
+        set -eux
+        jupyter labextension list
+        jupyter labextension list 2>&1 | grep -ie "jupyter-threejs.*enabled.*ok" -
