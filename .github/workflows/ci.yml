@@ -182,7 +182,7 @@ jobs:
       name: Install labextension
       run: |
         set -eux
-        jupyter labextension install --no-build --debug dist/*.tgz
+        jupyter labextension install --no-build --debug ./dist/*.tgz @jupyter-widgets/jupyterlab-manager
         jupyter labextension list
         jupyter labextension list 2>&1 | grep -ie "jupyter-threejs" -
     - if: ${{ matrix.node }}
