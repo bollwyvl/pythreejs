@@ -66,11 +66,11 @@ jobs:
             dist: 'pythreejs*.tar.gz'
           - python: 3.8
             dist: 'pythreejs*.whl'
-            lab: "'jupyterlab==1.*'"
+            lab: 1
             node-version: 10
           - python: 3.9
             dist: 'pythreejs*.whl'
-            lab: "'jupyterlab==2.*'"
+            lab: 2
             node-version: 14
           - os: windows
             py_cmd: python
@@ -96,18 +96,24 @@ jobs:
       run: |
         set -eux
         cd dist
-        ${{ matrix.py_cmd }} -m pip install ${{ matrix.dist }} ${{ matrix.lab }}
+        ${{ matrix.py_cmd }} -m pip install ${{ matrix.dist }}
     - name: Validate environment
       run: |
         set -eux
         ${{ matrix.py_cmd }} -m pip freeze
         ${{ matrix.py_cmd }} -m pip check
+    - if: ${{ matrix.lab }}
+      name: Install lab
+      run: |
+        set -eux
+        ${{ matrix.py_cmd }} -m pip install 'jupyterlab==${{ matrix.lab }}.*'
     - name: Install test dependencies
       # explicit file installs don't support extras, skimage brings most along
       run: |
         set -eux
         ${{ matrix.py_cmd }} -m pip install nbval scikit-image ipywebrtc
     - name: Run python tests
+      # remove the source directory to avoid surprises
       run: |
         set -eux
         rm -rf pythreejs
