@@ -31,7 +31,7 @@ jobs:
       run: |
         set -eux
         python -m pip install -U --user pip wheel setuptools
-        npm install -g yarn
+        yarn --version || npm install -g yarn
     - name: Pre-install node dependencies
       run: |
         set -eux
