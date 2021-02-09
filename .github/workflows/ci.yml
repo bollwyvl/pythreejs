@@ -22,7 +22,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: 3.8
+        python-version: 3.9
     - name: Set up Node
       uses: actions/setup-node@v2
       with:
@@ -53,8 +53,55 @@ jobs:
         name: dist ${{ github.run_number }}
         path: ./dist
 
+  docs:
+    name: docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install apt dependencies
+        run: |
+          set -eux
+          sudo apt install pandoc
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - name: Install packaging dependencies
+        run: |
+          set -eux
+          python -m pip install -U --user pip wheel setuptools
+      - name: Set up Node
+        uses: actions/setup-node@v2
+        with:
+          node: 14.x
+      - name: Install package and docs dependencies
+        run: |
+          set -eux
+          pip install -U .[docs,examples,test] requests_cache 'traitlets==4.*'
+      - name: Build docs
+        run: |
+          set -eux
+          cd docs
+          make html
+      - name: Upload docs
+        uses: actions/upload-artifact@v2
+        with:
+          name: docs ${{ github.run_number }}
+          path: ./docs/build
+      - name: Cache links
+        uses: actions/cache@v1
+        with:
+          path: ./build/links
+          key: ${{ runner.os }}-links
+      - name: Check links
+        run: |
+          set -eux
+          mkdir -p build/links/cache
+          cd docs
+          pytest-check-links --check-links-cache --check-links-cache-name ../build/links/cache
+
   test:
-    name: test ${{ matrix.os }}${{ matrix.python }}
+    name: test ${{ matrix.os }}${{ matrix.python }} ${{ matrix.node }} ${{ matrix.lab }}
     needs: [build]
     runs-on: ${{ matrix.os }}-latest
     strategy:
