@@ -29,16 +29,22 @@ jobs:
     - name: Install packaging dependencies
       run:
         pip install -U --user pip wheel setuptools
+        npm install yarn=1
+    - name: Pre-install node stuff
+      run:
+        cd js
+        yarn --ignore-optional
     - name: Build sdist
       run:
         python setup.py sdist
     - name: Build wheel
       run:
         python setup.py bdist_wheel
-    - name: Hash files
+    - name: Collect and Hash distributions
       run:
+        cp js/lab-dist/jupyter-threejs-*.tgz dist
         cd dist
-        sha256sum * >> SHA256SUMS
+        sha256sum * | tee SHA256SUMS
     - name: Upload distributions
       uses: actions/upload-artifact@v2
       with:
